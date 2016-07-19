@@ -22,11 +22,14 @@ type Runn struct {
 }
 
 func (self *Runn) AddFromDir(name, path string) error {
-	buf, err := runnlib.PackageFromDir(path, name, self.key)
+	/*buf, err := runnlib.PackageFromDir(path, name, self.key)
+	if err != nil {
+		return err
+	}*/
+	buf, err := runnlib.ArchieveDir(path, name, self.key)
 	if err != nil {
 		return err
 	}
-
 	return self.store.Set(name, buf)
 }
 
@@ -54,8 +57,12 @@ func (self *Runn) Run(name, cmd string) error {
 
 	defer os.RemoveAll(target)
 
-	if err := runnlib.PackageToDir(reader, size, target, self.key); err != nil {
+	/*if err := runnlib.PackageToDir(reader, size, target, self.key); err != nil {
 		return fmt.Errorf("PackageToDir: %s", err)
+	}*/
+
+	if err := runnlib.UnarchiveToDir(target, reader, size, self.key); err != nil {
+		return err
 	}
 
 	bundle, berr := NewBundle(target)

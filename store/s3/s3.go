@@ -37,7 +37,7 @@ func (self *filestore) Set(name string, r io.Reader) error {
 
 }
 
-func (self *filestore) Get(name string) (io.ReaderAt, int64, error) {
+func (self *filestore) Get(name string) (io.Reader, int64, error) {
 
 	r, e := self.client.GetObject(self.config.Bucket, name)
 	if e != nil {

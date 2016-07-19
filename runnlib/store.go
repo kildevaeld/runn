@@ -7,7 +7,7 @@ import (
 
 type Store interface {
 	Set(name string, r io.Reader) error
-	Get(name string) (io.ReaderAt, int64, error)
+	Get(name string) (io.Reader, int64, error)
 }
 
 type StoreFunc func(config interface{}) (Store, error)

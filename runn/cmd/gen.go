@@ -18,6 +18,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"io"
 	"path/filepath"
 
 	"github.com/kildevaeld/runn/runnlib"
@@ -46,15 +47,21 @@ to quickly create a Cobra application.`,
 		if err != nil {
 			printError(err)
 		}
-		var buf *bytes.Buffer
-		if buf, err = runnlib.PackageFromDir(path, "", []byte("tmp")); err != nil {
+		var buf io.Reader
+		/*if buf, err = runnlib.PackageFromDir(path, "", []byte("tmp")); err != nil {
+			printError(err)
+		}*/
+		if buf, err = runnlib.ArchieveDir(path, "", []byte("tmp")); err != nil {
 			printError(err)
 		}
 
-		reader := bytes.NewReader(buf.Bytes())
+		reader := buf.(*bytes.Buffer)
 
-		err = runnlib.PackageToDir(reader, int64(buf.Len()), path, []byte("tmp"))
-		printError(err)
+		if err := runnlib.UnarchiveToDir(path, reader, int64(reader.Len()), []byte("tmp")); err != nil {
+			printError(err)
+		}
+		//err = runnlib.PackageToDir(bytes.NewReader(reader.Bytes()), int64(buf.Len()), path, []byte("tmp"))
+		//printError(err)
 	},
 }
 

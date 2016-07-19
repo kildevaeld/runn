@@ -2,7 +2,6 @@ package file
 
 import (
 	"io"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 
@@ -26,16 +25,18 @@ func (self *filestore) init() error {
 
 func (self *filestore) Set(name string, r io.Reader) error {
 	path := filepath.Join(self.config.Path, name+".zip")
-	b, e := ioutil.ReadAll(r)
+	file, e := os.Create(path)
 	if e != nil {
 		return e
 	}
+	defer file.Close()
+	_, err := io.Copy(file, r)
 
-	return ioutil.WriteFile(path, b, 0766)
+	return err
 
 }
 
-func (self *filestore) Get(name string) (io.ReaderAt, int64, error) {
+func (self *filestore) Get(name string) (io.Reader, int64, error) {
 	path := filepath.Join(self.config.Path, name+".zip")
 	f, e := os.Open(path)
 	if e != nil {

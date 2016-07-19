@@ -16,10 +16,10 @@ package cmd
 
 import (
 	"fmt"
-	"io/ioutil"
 	"log"
 	"os"
 
+	"github.com/mitchellh/go-homedir"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -72,11 +72,15 @@ func initConfig() {
 		viper.SetConfigFile(cfgFile)
 	}
 
-	viper.SetConfigName(".runn") // name of config file (without extension)
-	viper.AddConfigPath("$HOME") // adding home directory as first search path
-	viper.AutomaticEnv()         // read in environment variables that match
+	configPath, err := homedir.Expand("~/.runn")
+	if err != nil {
+		printError(err)
+	}
+	viper.SetConfigName("config")   // name of config file (without extension)
+	viper.AddConfigPath(configPath) // adding home directory as first search path
+	viper.AutomaticEnv()            // read in environment variables that match
 
-	log.SetOutput(ioutil.Discard)
+	//log.SetOutput(ioutil.Discard)
 
 	// If a config file is found, read it in.
 	if err := viper.ReadInConfig(); err == nil {

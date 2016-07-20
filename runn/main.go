@@ -14,6 +14,8 @@
 
 package main
 
+//go:generate go-bindata -pkg cmd -o cmd/assets.go templates/
+
 import "github.com/kildevaeld/runn/runn/cmd"
 
 func main() {

@@ -6,8 +6,9 @@ import (
 )
 
 type Store interface {
-	Set(name string, r io.Reader) error
-	Get(name string) (io.Reader, int64, error)
+	Set(name string, r io.Reader, bundle Bundle, length int64) error
+	Get(name string) (io.Reader, error)
+	List() []Bundle
 }
 
 type StoreFunc func(config interface{}) (Store, error)

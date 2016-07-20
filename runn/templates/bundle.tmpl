@@ -1,0 +1,7 @@
+{{.Description}}
+Usage: 
+  runn run {{.Name}} <command>
+
+Available Commands:
+  {{ range .Commands }}{{ .Name }}                   {{ .Description }}{{ end }}
+

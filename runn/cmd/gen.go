@@ -51,13 +51,14 @@ to quickly create a Cobra application.`,
 		/*if buf, err = runnlib.PackageFromDir(path, "", []byte("tmp")); err != nil {
 			printError(err)
 		}*/
-		if buf, err = runnlib.ArchieveDir(path, "", []byte("tmp")); err != nil {
+		var size int64
+		if buf, _, size, err = runnlib.ArchieveDir(path, "", []byte("tmp")); err != nil {
 			printError(err)
 		}
 
 		reader := buf.(*bytes.Buffer)
 
-		if err := runnlib.UnarchiveToDir(path, reader, int64(reader.Len()), []byte("tmp")); err != nil {
+		if err := runnlib.UnarchiveToDir(path, bytes.NewReader(reader.Bytes()), size, []byte("tmp")); err != nil {
 			printError(err)
 		}
 		//err = runnlib.PackageToDir(bytes.NewReader(reader.Bytes()), int64(buf.Len()), path, []byte("tmp"))

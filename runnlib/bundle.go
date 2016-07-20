@@ -20,14 +20,16 @@ import (
 var NotExistsError = errors.New("NOENTRY")
 
 type BundleCommand struct {
-	Name    string
-	Command CommandConfig
+	Name        string
+	Description string
+	Command     CommandConfig
 }
 
 type Bundle struct {
-	Name     string
-	Commands []BundleCommand
-	Context  []string
+	Name        string
+	Description string
+	Commands    []BundleCommand
+	Context     []string
 }
 
 func GetBundleFromPath(dir string, v *Bundle) (err error) {

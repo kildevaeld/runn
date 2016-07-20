@@ -34,17 +34,17 @@ func UnarchiveToDir(path string, source io.Reader, size int64, key_raw []byte) e
 	key := filecrypt.Key(key_raw)
 
 	out := bytes.NewBuffer(nil)
-
+	//out, _ := os.Create("test.zip")
 	if err := filecrypt.Decrypt(out, source, &key); err != nil {
 		return fmt.Errorf("decrypt: %s", err)
 	}
 
-	arc, err := zip.NewReader(bytes.NewReader(out.Bytes()), size)
+	arc, err := zip.NewReader(bytes.NewReader(out.Bytes()), int64(out.Len()))
 	if err != nil {
-		return err
+		return fmt.Errorf("error: %s", err)
 	}
 
-	os.MkdirAll(path, 0766)
+	os.MkdirAll(path, 0666)
 
 	for _, file := range arc.File {
 		fullPath := filepath.Join(path, file.Name)
@@ -76,7 +76,7 @@ func UnarchiveToDir(path string, source io.Reader, size int64, key_raw []byte) e
 	return nil
 }
 
-func ArchieveDir(path string, name string, key_raw []byte) (io.Reader, error) {
+func ArchieveDir(path string, name string, key_raw []byte) (io.Reader, Bundle, int64, error) {
 
 	buf := bytes.NewBuffer(nil)
 	arc := zip.NewWriter(buf)
@@ -87,7 +87,7 @@ func ArchieveDir(path string, name string, key_raw []byte) (io.Reader, error) {
 	includeCurrentFolder := false
 
 	var files []string
-
+	var bundle Bundle
 	err := addAll(path, path, includeCurrentFolder, func(info os.FileInfo, file io.Reader, entryName string) (err error) {
 
 		// Create a header based off of the fileinfo
@@ -130,13 +130,12 @@ func ArchieveDir(path string, name string, key_raw []byte) (io.Reader, error) {
 	})
 
 	if err != nil {
-		return nil, err
+		return nil, bundle, 0, err
 	}
 
-	var bundle Bundle
 	if err := GetBundleFromPath(path, &bundle); err != nil {
 		if err != NotExistsError {
-			return nil, err
+			return nil, bundle, 0, err
 		}
 		bundle.Name = name
 
@@ -167,11 +166,11 @@ func ArchieveDir(path string, name string, key_raw []byte) (io.Reader, error) {
 		bundleFile, _ := arc.Create("bundle.yaml")
 
 		if b, e := yaml.Marshal(bundle); e != nil {
-			return nil, e
+			return nil, bundle, 0, e
 		} else {
 
 			if _, e := bundleFile.Write(b); e != nil {
-				return nil, e
+				return nil, bundle, 0, e
 			}
 			//bundleFile.Write(nil)
 		}
@@ -179,7 +178,7 @@ func ArchieveDir(path string, name string, key_raw []byte) (io.Reader, error) {
 	}
 
 	if err := arc.Close(); err != nil {
-		return nil, fmt.Errorf("zip-close: %s", err)
+		return nil, bundle, 0, fmt.Errorf("zip-close: %s", err)
 	}
 
 	out := bytes.NewBuffer(nil)
@@ -187,10 +186,10 @@ func ArchieveDir(path string, name string, key_raw []byte) (io.Reader, error) {
 	key := filecrypt.Key(key_raw)
 
 	if _, err := filecrypt.Encrypt(out, bytes.NewReader(buf.Bytes()), &key); err != nil {
-		return nil, fmt.Errorf("encrypt: %s", err)
+		return nil, bundle, 0, fmt.Errorf("encrypt: %s", err)
 	}
 
-	return out, nil
+	return out, bundle, int64(out.Len()), nil
 
 }
 

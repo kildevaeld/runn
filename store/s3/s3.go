@@ -5,7 +5,8 @@ import (
 
 	"github.com/kildevaeld/dict"
 	"github.com/kildevaeld/runn/runnlib"
-	"github.com/minio/minio-go"
+	"github.com/mitchellh/goamz/aws"
+	"github.com/mitchellh/goamz/s3"
 	"github.com/mitchellh/mapstructure"
 )
 
@@ -17,39 +18,44 @@ type Config struct {
 
 type filestore struct {
 	config Config
-	client *minio.Client
+	bucket *s3.Bucket
 }
 
 func (self *filestore) init() error {
-	client, err := minio.New("s3.amazonaws.com", self.config.AccessKey, self.config.AccessSecret, true)
-	if err != nil {
-		return err
+
+	auth := aws.Auth{
+		AccessKey: self.config.AccessKey,
+		SecretKey: self.config.AccessSecret,
 	}
 
-	self.client = client
+	client := s3.New(auth, aws.EUWest)
+
+	self.bucket = client.Bucket(self.config.Bucket)
 
 	return nil
 }
 
-func (self *filestore) Set(name string, r io.Reader) error {
-	_, err := self.client.PutObject(self.config.Bucket, name, r, "application/zip")
-	return err
-
+func (self *filestore) Set(name string, r io.Reader, bundle runnlib.Bundle, length int64) error {
+	//_, err := self.client.PutObject(self.config.Bucket, name, r, "application/zip")
+	//return err
+	return self.bucket.PutReader(name, r, length, "application/zip", s3.Private)
 }
 
-func (self *filestore) Get(name string) (io.Reader, int64, error) {
+func (self *filestore) Get(name string) (io.Reader, error) {
 
-	r, e := self.client.GetObject(self.config.Bucket, name)
+	r, e := self.bucket.GetReader(name)
+
+	//r, e := self.client.GetObject(self.config.Bucket, name)
 	if e != nil {
-		return nil, 0, e
+		return nil, e
 	}
 
-	var stat minio.ObjectInfo
-	if stat, e = r.Stat(); e != nil {
-		return nil, 0, e
-	}
+	return r, e
+}
 
-	return r, stat.Size, e
+func (self *filestore) List() []runnlib.Bundle {
+
+	return nil
 }
 
 func init() {

@@ -1,9 +1,13 @@
 package file
 
 import (
+	"encoding/json"
+	"fmt"
 	"io"
+	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/kildevaeld/dict"
 	"github.com/kildevaeld/runn/runnlib"
@@ -19,11 +23,11 @@ type filestore struct {
 }
 
 func (self *filestore) init() error {
-	os.MkdirAll(self.config.Path, 0766)
+	os.MkdirAll(filepath.Join(self.config.Path, "bundles"), 0766)
 	return nil
 }
 
-func (self *filestore) Set(name string, r io.Reader) error {
+func (self *filestore) Set(name string, r io.Reader, bundle runnlib.Bundle, length int64) error {
 	path := filepath.Join(self.config.Path, name+".zip")
 	file, e := os.Create(path)
 	if e != nil {
@@ -31,24 +35,60 @@ func (self *filestore) Set(name string, r io.Reader) error {
 	}
 	defer file.Close()
 	_, err := io.Copy(file, r)
+	if err == nil {
+		bundlePath := filepath.Join(self.config.Path, "bundles", name+".json")
+		if b, e := json.MarshalIndent(bundle, "", "  "); e == nil {
+			err = ioutil.WriteFile(bundlePath, b, 0666)
+		} else {
+			err = e
+		}
+	}
 
 	return err
 
 }
 
-func (self *filestore) Get(name string) (io.Reader, int64, error) {
+func (self *filestore) Get(name string) (io.Reader, error) {
 	path := filepath.Join(self.config.Path, name+".zip")
 	f, e := os.Open(path)
 	if e != nil {
-		return nil, 0, e
-	}
-	var stat os.FileInfo
-	if stat, e = f.Stat(); e != nil {
-		return nil, 0, e
+		return nil, e
 	}
 
-	return f, stat.Size(), e
+	return f, e
 
+}
+
+func (self *filestore) List() []runnlib.Bundle {
+	var out []runnlib.Bundle
+	path := filepath.Join(self.config.Path, "bundles")
+	files, err := ioutil.ReadDir(path)
+	if err != nil {
+		fmt.Printf("fs:list: %s\n", err)
+		return out
+	}
+	//fmt.Printf("file store list")
+	for _, file := range files {
+		if file.IsDir() || !strings.HasSuffix(file.Name(), ".json") {
+
+			continue
+		}
+
+		var b []byte
+		if b, err = ioutil.ReadFile(filepath.Join(path, file.Name())); err != nil {
+			fmt.Printf("fs:list: %s\n", err)
+			return out
+		}
+		var bundle runnlib.Bundle
+		if err = json.Unmarshal(b, &bundle); err != nil {
+			fmt.Printf("fs:list: %s\n", err)
+			return out
+		}
+
+		out = append(out, bundle)
+	}
+
+	return out
 }
 
 func init() {

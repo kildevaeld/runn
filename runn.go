@@ -26,16 +26,16 @@ func (self *Runn) AddFromDir(name, path string) error {
 	if err != nil {
 		return err
 	}*/
-	buf, err := runnlib.ArchieveDir(path, name, self.key)
+	buf, bundle, size, err := runnlib.ArchieveDir(path, name, self.key)
 	if err != nil {
 		return err
 	}
-	return self.store.Set(name, buf)
+	return self.store.Set(name, buf, bundle, size)
 }
 
 func (self *Runn) Run(name, cmd string) error {
 
-	reader, size, err := self.store.Get(name)
+	reader, err := self.store.Get(name)
 	if err != nil {
 		return fmt.Errorf("Store: %s", err)
 	}
@@ -61,7 +61,7 @@ func (self *Runn) Run(name, cmd string) error {
 		return fmt.Errorf("PackageToDir: %s", err)
 	}*/
 
-	if err := runnlib.UnarchiveToDir(target, reader, size, self.key); err != nil {
+	if err := runnlib.UnarchiveToDir(target, reader, 0, self.key); err != nil {
 		return err
 	}
 
@@ -72,6 +72,10 @@ func (self *Runn) Run(name, cmd string) error {
 
 	return bundle.Run(cmd)
 
+}
+
+func (self *Runn) List() []runnlib.Bundle {
+	return self.store.List()
 }
 
 func New(config Config) (*Runn, error) {

@@ -57,10 +57,6 @@ func (self *Runn) Run(name, cmd string) error {
 
 	defer os.RemoveAll(target)
 
-	/*if err := runnlib.PackageToDir(reader, size, target, self.key); err != nil {
-		return fmt.Errorf("PackageToDir: %s", err)
-	}*/
-
 	if err := runnlib.UnarchiveToDir(target, reader, 0, self.key); err != nil {
 		return err
 	}

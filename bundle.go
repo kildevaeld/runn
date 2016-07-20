@@ -3,11 +3,31 @@ package runn
 import (
 	"bytes"
 	"errors"
+	"net"
 	"text/template"
 
 	"github.com/kildevaeld/dict"
 	"github.com/kildevaeld/runn/runnlib"
 )
+
+// GetLocalIP returns the non loopback local IP of the host
+func GetLocalIP() string {
+	addrs, err := net.InterfaceAddrs()
+	if err != nil {
+		return ""
+	}
+
+	for _, address := range addrs {
+		// check the address type and if it is not a loopback the display it
+		if ipnet, ok := address.(*net.IPNet); ok && !ipnet.IP.IsLoopback() {
+
+			if ipnet.IP.To4() != nil {
+				return ipnet.IP.String()
+			}
+		}
+	}
+	return ""
+}
 
 type Bundle struct {
 	workdir string
@@ -66,6 +86,13 @@ func interpolateCommand(cmd *runnlib.CommandConfig, locals dict.Map) (runnlib.Co
 		return out, err
 	}
 
+	if cmd.Environment != nil {
+		out.Environment = make(map[string]string)
+		for k, v := range cmd.Environment {
+			out.Environment[k], _ = interpolateString(v, locals)
+		}
+	}
+
 	return out, nil
 }
 
@@ -88,6 +115,7 @@ func (self *Bundle) Run(name string) error {
 
 	locals := dict.NewMap()
 	locals["WorkDir"] = self.workdir
+	locals["HostIP"] = GetLocalIP()
 
 	config, err := interpolateCommand(comm, locals)
 	if err != nil {

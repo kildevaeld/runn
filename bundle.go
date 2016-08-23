@@ -91,6 +91,12 @@ func interpolateCommand(cmd *runnlib.CommandConfig, locals dict.Map) (runnlib.Co
 		for k, v := range cmd.Environment {
 			out.Environment[k], _ = interpolateString(v, locals)
 		}
+		for k, v := range locals {
+			if s, ok := v.(string); ok {
+				out.Environment[k] = s
+			}
+
+		}
 	}
 
 	return out, nil
@@ -105,7 +111,7 @@ func getCommandInBundle(bundle runnlib.Bundle, name string) *runnlib.CommandConf
 	return nil
 }
 
-func (self *Bundle) Run(name string) error {
+func (self *Bundle) Run(name string, config RunConfig) error {
 
 	comm := getCommandInBundle(self.config, name)
 	if comm == nil {
@@ -117,14 +123,20 @@ func (self *Bundle) Run(name string) error {
 	locals["WorkDir"] = self.workdir
 	locals["HostIP"] = GetLocalIP()
 
-	config, err := interpolateCommand(comm, locals)
+	if config.Locals != nil {
+		for k, v := range config.Locals {
+			locals[k] = v
+		}
+	}
+
+	conf, err := interpolateCommand(comm, locals)
 	if err != nil {
 		return err
 	}
 
-	cmd := Cmd(config)
+	cmd := Cmd(conf)
 
-	return cmd.Run()
+	return cmd.Run(config)
 
 	//return nil
 }

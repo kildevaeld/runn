@@ -6,13 +6,25 @@ import (
 	"os"
 	"os/exec"
 
+	"github.com/kildevaeld/notto"
 	"github.com/kildevaeld/runn/runnlib"
+	"github.com/kildevaeld/runn/vm"
 )
 
 const (
 	Stdout = "stdout"
 	Stderr = "stderr"
 )
+
+func mergeMap(m ...map[string]string) map[string]string {
+	out := make(map[string]string)
+	for _, mm := range m {
+		for k, v := range mm {
+			out[k] = v
+		}
+	}
+	return out
+}
 
 type Command struct {
 	config runnlib.CommandConfig
@@ -36,6 +48,7 @@ func getCommand(config runnlib.CommandConfig) (cmd *exec.Cmd, err error) {
 	}
 
 	if len(config.Interpreter) > 0 {
+
 		exe, err = exec.LookPath(config.Interpreter[0])
 		if err != nil {
 			return nil, err
@@ -45,6 +58,7 @@ func getCommand(config runnlib.CommandConfig) (cmd *exec.Cmd, err error) {
 		}
 
 		args = append(args, config.Cmd)
+
 		args = append(args, config.Args...)
 	} else {
 		exe, err = exec.LookPath(config.Cmd)
@@ -79,12 +93,13 @@ func getCommand(config runnlib.CommandConfig) (cmd *exec.Cmd, err error) {
 
 	if config.Interactive {
 		cmd.Stdin = os.Stdin
+
 	}
 
 	return cmd, nil
 }
 
-func (self *Command) Run() error {
+func (self *Command) Run(conf RunConfig) error {
 
 	stdout, stderr, err := runnlib.GetOutput(self.config)
 
@@ -103,7 +118,22 @@ func (self *Command) Run() error {
 	defer close(stdout)
 	defer close(stderr)
 
-	cmd, cerr := getCommand(self.config)
+	if len(self.config.Interpreter) > 0 && self.config.Interpreter[0] == "javascript" {
+
+		v, _ := vm.NewVM(stdout, stderr, self.config.WorkDir, conf.Args, mergeMap(self.config.Environment, notto.Environ(conf.Environ).ToMap()))
+		_, e := v.Run(self.config.Cmd, self.config.WorkDir)
+		return e
+	}
+
+	config := self.config
+	if len(conf.Args) > 0 {
+		config.Args = append(config.Args, conf.Args...)
+	}
+	if len(conf.Environ) > 0 {
+		config.Environment = mergeMap(config.Environment, notto.Environ(conf.Environ).ToMap())
+	}
+
+	cmd, cerr := getCommand(config)
 	cmd.Stderr = stderr
 	cmd.Stdout = stdout
 

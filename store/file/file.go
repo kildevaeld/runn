@@ -59,6 +59,13 @@ func (self *filestore) Get(name string) (io.Reader, error) {
 
 }
 
+func (self *filestore) Remove(name string) error {
+	path := filepath.Join(self.config.Path, name+".zip")
+	bundlePath := filepath.Join(self.config.Path, "bundles", name+".json")
+	os.RemoveAll(path)
+	return os.RemoveAll(bundlePath)
+}
+
 func (self *filestore) List() []runnlib.Bundle {
 	var out []runnlib.Bundle
 	path := filepath.Join(self.config.Path, "bundles")

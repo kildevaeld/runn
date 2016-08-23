@@ -1,0 +1,34 @@
+name: "Example"
+description: ""
+version: "0.0.1"
+commands:
+- name: start
+  description: "Start the app"
+  command:
+    environment: {}
+    workdir: '{{.WorkDir}}'
+    user: ""
+    cmd: '{{.WorkDir}}/start.sh'
+    args: []
+    interpreter:
+    - sh
+    - -c
+    script: false
+    interactive: false
+    stdout: stdout
+    stderr: stderr
+- name: test
+  description: "Test the app"
+  command:
+    environment: {}
+    workdir: '{{.WorkDir}}'
+    user: ""
+    cmd: '{{.WorkDir}}/test.js'
+    args: []
+    interpreter:
+    - javascript
+    script: false
+    interactive: false
+    stdout: "./out.txt"
+    stderr: stderr
+context: []

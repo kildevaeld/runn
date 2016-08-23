@@ -23,13 +23,13 @@ func GetOutput(config CommandConfig) (stdout io.Writer, stderr io.Writer, err er
 	if config.Stderr == "stderr" {
 		stderr = os.Stderr
 	} else if config.Stderr != "" {
-		stderr, err = os.Open(config.Stderr)
+		stderr, err = os.Create(config.Stderr)
 	}
 
 	if config.Stdout == "stdout" {
 		stdout = os.Stdout
 	} else if config.Stdout != "" {
-		stdout, err = os.Open(config.Stdout)
+		stdout, err = os.Create(config.Stdout)
 	}
 
 	return

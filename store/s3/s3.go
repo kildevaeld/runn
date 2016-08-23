@@ -92,6 +92,14 @@ func (self *filestore) List() []runnlib.Bundle {
 	return out
 }
 
+func (self *filestore) Remove(name string) error {
+	e := self.bucket.Del(name)
+	if e != nil {
+		return e
+	}
+	return self.bucket.Del("bundles/" + name + ".json")
+}
+
 func init() {
 	runnlib.AddStore("s3", func(conf interface{}) (store runnlib.Store, err error) {
 		var config Config

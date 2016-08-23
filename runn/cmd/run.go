@@ -16,20 +16,30 @@ package cmd
 
 import (
 	"errors"
+	"os"
+	"strings"
 
+	"github.com/kildevaeld/runn"
 	"github.com/spf13/cobra"
 )
+
+var envFlag []string
+
+func mergeStrinSlices(slices ...[]string) []string {
+	var out []string
+	for _, slice := range slices {
+		out = append(out, slice...)
+	}
+	return out
+}
 
 // runCmd represents the run command
 var runCmd = &cobra.Command{
 	Use:   "run",
 	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+	Long:  ``,
+	//Args:    cli.RequiresMinArgs(1),
+	Aliases: []string{"r"},
 	Run: func(cmd *cobra.Command, args []string) {
 		// TODO: Work your own magic here
 		run, err := getRunn()
@@ -41,7 +51,22 @@ to quickly create a Cobra application.`,
 			printError(errors.New("no"))
 		}
 
-		if err = run.Run(args[0], args[1]); err != nil {
+		split := strings.Split(args[0], ":")
+		if len(split) == 1 {
+			printError(errors.New("usage: runn run <bundle:command>"))
+		}
+
+		var a []string
+		if len(args) > 1 {
+			a = args[1:]
+		}
+
+		conf := runn.RunConfig{
+			Environ: mergeStrinSlices(os.Environ(), envFlag),
+			Args:    a,
+		}
+
+		if err = run.Run(split[0], split[1], conf); err != nil {
 			printError(err)
 		}
 
@@ -51,6 +76,7 @@ to quickly create a Cobra application.`,
 func init() {
 	RootCmd.AddCommand(runCmd)
 
+	runCmd.Flags().StringSliceVarP(&envFlag, "env", "e", nil, "env")
 	// Here you will define your flags and configuration settings.
 
 	// Cobra supports Persistent Flags which will work for this command

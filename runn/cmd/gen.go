@@ -52,7 +52,7 @@ to quickly create a Cobra application.`,
 			printError(err)
 		}*/
 		var size int64
-		if buf, _, size, err = runnlib.ArchieveDir(path, "", []byte("tmp")); err != nil {
+		if buf, _, size, err = runnlib.ArchieveDir(path, []byte("tmp")); err != nil {
 			printError(err)
 		}
 

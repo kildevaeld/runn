@@ -1,9 +1,10 @@
+{{.Name}} {{.Version}}
 {{.Description}}
 Usage: 
   runn run {{.Name}} <command>
 
 Available Commands:
-  {{ range .Commands }}{{ .Name }}                   {{ .Description }}
+  {{ range .Commands }}{{ .Name }}					{{ .Description }}
   {{ end }}
 
 

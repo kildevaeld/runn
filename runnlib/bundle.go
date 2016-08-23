@@ -28,6 +28,7 @@ type BundleCommand struct {
 type Bundle struct {
 	Name        string
 	Description string
+	Version     string
 	Commands    []BundleCommand
 	Context     []string
 }

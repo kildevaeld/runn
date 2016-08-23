@@ -16,24 +16,32 @@ type Config struct {
 	Key          string
 }
 
+type RunConfig struct {
+	Environ []string
+	Args    []string
+	Stdout  io.Writer
+	Stderr  io.Writer
+	Locals  map[string]interface{}
+}
+
 type Runn struct {
 	store runnlib.Store
 	key   []byte
 }
 
-func (self *Runn) AddFromDir(name, path string) error {
+func (self *Runn) AddFromDir(path string) error {
 	/*buf, err := runnlib.PackageFromDir(path, name, self.key)
 	if err != nil {
 		return err
 	}*/
-	buf, bundle, size, err := runnlib.ArchieveDir(path, name, self.key)
+	buf, bundle, size, err := runnlib.ArchieveDir(path, self.key)
 	if err != nil {
 		return err
 	}
-	return self.store.Set(name, buf, bundle, size)
+	return self.store.Set(bundle.Name, buf, bundle, size)
 }
 
-func (self *Runn) Run(name, cmd string) error {
+func (self *Runn) Run(name, cmd string, config RunConfig) error {
 
 	reader, err := self.store.Get(name)
 	if err != nil {
@@ -66,12 +74,16 @@ func (self *Runn) Run(name, cmd string) error {
 		return berr
 	}
 
-	return bundle.Run(cmd)
+	return bundle.Run(cmd, config)
 
 }
 
 func (self *Runn) List() []runnlib.Bundle {
 	return self.store.List()
+}
+
+func (self *Runn) Remove(name string) error {
+	return self.store.Remove(name)
 }
 
 func New(config Config) (*Runn, error) {

@@ -76,7 +76,7 @@ func UnarchiveToDir(path string, source io.Reader, size int64, key_raw []byte) e
 	return nil
 }
 
-func ArchieveDir(path string, name string, key_raw []byte) (io.Reader, Bundle, int64, error) {
+func ArchieveDir(path string, key_raw []byte) (io.Reader, Bundle, int64, error) {
 
 	buf := bytes.NewBuffer(nil)
 	arc := zip.NewWriter(buf)
@@ -137,7 +137,6 @@ func ArchieveDir(path string, name string, key_raw []byte) (io.Reader, Bundle, i
 		if err != NotExistsError {
 			return nil, bundle, 0, err
 		}
-		bundle.Name = name
 
 		for _, file := range files {
 			interpreter := getInterpreterFromPath(file)

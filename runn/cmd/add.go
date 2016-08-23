@@ -38,11 +38,11 @@ to quickly create a Cobra application.`,
 			printError(err)
 		}
 
-		if len(args) < 2 {
-			printError(errors.New("usage: runn add <name> <path>"))
+		if len(args) < 1 {
+			printError(errors.New("usage: runn add <path>"))
 		}
 
-		if err = run.AddFromDir(args[0], args[1]); err != nil {
+		if err = run.AddFromDir(args[0]); err != nil {
 			printError(err)
 		}
 

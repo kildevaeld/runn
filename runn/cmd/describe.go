@@ -27,7 +27,7 @@ import (
 // describeCmd represents the describe command
 var describeCmd = &cobra.Command{
 	Use:   "describe <bundle>",
-	Short: "",
+	Short: "Describe a bundle",
 	Long:  ``,
 	Run: func(cmd *cobra.Command, args []string) {
 		if len(args) == 0 {

@@ -1,16 +1,15 @@
 package vm
 
 import (
-	"fmt"
 	"io"
-	"strings"
-
-	"github.com/kildevaeld/notto/modules/process"
-	"github.com/kildevaeld/notto/modules/util"
 
 	"github.com/kildevaeld/notto"
+	"github.com/kildevaeld/notto/modules/fetch"
+	"github.com/kildevaeld/notto/modules/global"
+	"github.com/kildevaeld/notto/modules/process"
+	"github.com/kildevaeld/notto/modules/promise"
 	"github.com/kildevaeld/notto/modules/shell"
-	"github.com/robertkrimen/otto"
+	"github.com/kildevaeld/notto/modules/util"
 )
 
 func NewVM(stdout, stderr io.Writer, workdir string, args []string, env map[string]string) (*notto.Notto, error) {
@@ -24,13 +23,14 @@ func NewVM(stdout, stderr io.Writer, workdir string, args []string, env map[stri
 	a.Environ = notto.MapToEnviron(env)
 	a.Cwd = workdir
 
-	vm.Init()
-
 	shell.Define(vm, false)
 	process.Define(vm)
 	util.Define(vm)
+	promise.Define(vm)
+	fetch.Define(vm)
+	global.Define(vm)
 
-	ob, err := vm.Object("({})")
+	/*ob, err := vm.Object("({})")
 	if err != nil {
 		return nil, err
 	}
@@ -66,7 +66,7 @@ func NewVM(stdout, stderr io.Writer, workdir string, args []string, env map[stri
 		return otto.UndefinedValue()
 	})
 
-	vm.Set("console", ob)
+	vm.Set("console", ob)*/
 
 	return vm, nil
 }

@@ -39,6 +39,7 @@ var runCmd = &cobra.Command{
 	Short: "A brief description of your command",
 	Long:  ``,
 	//Args:    cli.RequiresMinArgs(1),
+
 	Aliases: []string{"r"},
 	Run: func(cmd *cobra.Command, args []string) {
 		// TODO: Work your own magic here
@@ -56,14 +57,14 @@ var runCmd = &cobra.Command{
 			printError(errors.New("usage: runn run <bundle:command>"))
 		}
 
-		var a []string
+		/*var a []string
 		if len(args) > 1 {
 			a = args[1:]
-		}
+		}*/
 
 		conf := runn.RunConfig{
 			Environ: mergeStrinSlices(os.Environ(), envFlag),
-			Args:    a,
+			Args:    args,
 		}
 
 		if err = run.Run(split[0], split[1], conf); err != nil {

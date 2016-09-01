@@ -1,6 +1,9 @@
+var argv = require('minimist')(process.argv.slice(1))
+console.log('test', JSON.stringify(argv, null, 2))
 
-console.log('test')
+Promise.delay(1000).then(function () {
+	console.log('delay');
+})
 
-setTimeout(function () {
-	console.log('1000')
-}, 1000)
+
+console.log(process.env.NODE_ENV)

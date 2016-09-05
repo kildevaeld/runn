@@ -10,6 +10,7 @@ import (
 	"github.com/kildevaeld/notto/modules/promise"
 	"github.com/kildevaeld/notto/modules/shell"
 	"github.com/kildevaeld/notto/modules/util"
+	"github.com/kildevaeld/runn/vm/modules/s3"
 )
 
 func NewVM(stdout, stderr io.Writer, workdir string, args []string, env map[string]string) (*notto.Notto, error) {
@@ -29,6 +30,11 @@ func NewVM(stdout, stderr io.Writer, workdir string, args []string, env map[stri
 	promise.Define(vm)
 	fetch.Define(vm)
 	global.Define(vm)
+
+	// Custom modules
+	if e := s3.Define(vm); e != nil {
+		panic(e)
+	}
 
 	/*ob, err := vm.Object("({})")
 	if err != nil {

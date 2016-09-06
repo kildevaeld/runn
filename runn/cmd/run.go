@@ -53,10 +53,12 @@ var runCmd = &cobra.Command{
 		}
 
 		split := strings.Split(args[0], ":")
-		if len(split) == 1 {
-			printError(errors.New("usage: runn run <bundle:command>"))
+		bundle := split[0]
+		scmd := "default"
+		if len(split) > 1 {
+			scmd = split[1]
+			//printError(errors.New("usage: runn run <bundle:command>"))
 		}
-
 		/*var a []string
 		if len(args) > 1 {
 			a = args[1:]
@@ -64,10 +66,10 @@ var runCmd = &cobra.Command{
 
 		conf := runn.RunConfig{
 			Environ: mergeStrinSlices(os.Environ(), envFlag),
-			Args:    args,
+			Args:    args[1:],
 		}
 
-		if err = run.Run(split[0], split[1], conf); err != nil {
+		if err = run.Run(bundle, scmd, conf); err != nil {
 			printError(err)
 		}
 

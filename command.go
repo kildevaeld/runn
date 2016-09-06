@@ -27,6 +27,8 @@ func mergeMap(m ...map[string]string) map[string]string {
 }
 
 type Command struct {
+	bundle string
+	name   string
 	config runnlib.CommandConfig
 }
 
@@ -118,17 +120,17 @@ func (self *Command) Run(conf RunConfig) error {
 	defer close(stdout)
 	defer close(stderr)
 
-	if len(self.config.Interpreter) > 0 && self.config.Interpreter[0] == "javascript" {
-
-		v, _ := vm.NewVM(stdout, stderr, self.config.WorkDir, conf.Args, mergeMap(self.config.Environment, notto.Environ(conf.Environ).ToMap()))
-		_, e := v.Run(self.config.Cmd, self.config.WorkDir)
-		return e
-	}
-
 	config := self.config
 	if len(conf.Args) > 0 {
 		config.Args = append(config.Args, conf.Args...)
 	}
+	if len(self.config.Interpreter) > 0 && self.config.Interpreter[0] == "javascript" {
+		args := append([]string{self.bundle + "-" + self.name}, config.Args...)
+		v, _ := vm.NewVM(stdout, stderr, self.config.WorkDir, args, mergeMap(self.config.Environment, notto.Environ(conf.Environ).ToMap()))
+		_, e := v.Run(self.config.Cmd, self.config.WorkDir)
+		return e
+	}
+
 	if len(conf.Environ) > 0 {
 		config.Environment = mergeMap(config.Environment, notto.Environ(conf.Environ).ToMap())
 	}
@@ -144,6 +146,6 @@ func (self *Command) Run(conf RunConfig) error {
 	return cmd.Run()
 }
 
-func Cmd(config runnlib.CommandConfig) *Command {
-	return &Command{config}
+func Cmd(bundle, name string, config runnlib.CommandConfig) *Command {
+	return &Command{bundle, name, config}
 }

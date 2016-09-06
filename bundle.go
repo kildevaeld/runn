@@ -102,10 +102,10 @@ func interpolateCommand(cmd *runnlib.CommandConfig, locals dict.Map) (runnlib.Co
 	return out, nil
 }
 
-func getCommandInBundle(bundle runnlib.Bundle, name string) *runnlib.CommandConfig {
+func getCommandInBundle(bundle runnlib.Bundle, name string) *runnlib.BundleCommand {
 	for _, c := range bundle.Commands {
 		if c.Name == name {
-			return &c.Command
+			return &c //&c.Command
 		}
 	}
 	return nil
@@ -129,12 +129,12 @@ func (self *Bundle) Run(name string, config RunConfig) error {
 		}
 	}
 
-	conf, err := interpolateCommand(comm, locals)
+	conf, err := interpolateCommand(&comm.Command, locals)
 	if err != nil {
 		return err
 	}
 
-	cmd := Cmd(conf)
+	cmd := Cmd(self.config.Name, comm.Name, conf)
 
 	return cmd.Run(config)
 

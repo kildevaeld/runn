@@ -37,7 +37,7 @@ var RootCmd = &cobra.Command{
 	// has an action associated with it:
 	Run: func(cmd *cobra.Command, args []string) {
 		if versionFlag {
-			fmt.Printf("runn version 0.0.1\n")
+			fmt.Printf("runn version 0.0.2\n")
 		}
 	},
 }

@@ -36,7 +36,7 @@ func mergeStrinSlices(slices ...[]string) []string {
 // runCmd represents the run command
 var runCmd = &cobra.Command{
 	Use:   "run",
-	Short: "A brief description of your command",
+	Short: "Run a bundle command",
 	Long:  ``,
 	//Args:    cli.RequiresMinArgs(1),
 

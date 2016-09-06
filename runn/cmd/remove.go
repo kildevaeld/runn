@@ -22,8 +22,8 @@ import (
 
 // removeCmd represents the remove command
 var removeCmd = &cobra.Command{
-	Use:     "remove",
-	Short:   "A brief description of your command",
+	Use:     "remove <name>",
+	Short:   "Remove a bundle",
 	Long:    ``,
 	Aliases: []string{"rm"},
 	Run: func(cmd *cobra.Command, args []string) {

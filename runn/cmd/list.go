@@ -24,7 +24,7 @@ import (
 // listCmd represents the list command
 var listCmd = &cobra.Command{
 	Use:   "list",
-	Short: "",
+	Short: "List all bundles",
 	Long:  ``,
 	Run: func(cmd *cobra.Command, args []string) {
 		run, err := getRunn()

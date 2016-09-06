@@ -27,7 +27,7 @@ import (
 
 // genCmd represents the gen command
 var genCmd = &cobra.Command{
-	Use:   "gen",
+	Use:   "gen <path>",
 	Short: "Generate bundle from directory",
 	Long:  ``,
 	Run: func(cmd *cobra.Command, args []string) {

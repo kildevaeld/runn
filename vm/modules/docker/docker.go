@@ -1,19 +1,18 @@
+//go:generate go-bindata -pkg docker -o docker_impl.go docker.js
 package docker
 
-import (
-	dockerclient "github.com/fsouza/go-dockerclient"
-	"github.com/kildevaeld/notto"
-	"github.com/robertkrimen/otto"
-)
+import "github.com/kildevaeld/notto"
 
 func Define(vm *notto.Notto) error {
 
-	err := vm.Set("__private_docker", privateDockerCall(vm))
+	//err := vm.Set("__private_docker", privateDockerCall(vm))
+
+	vm.AddModule("docker", notto.CreateLoaderFromSource(string(MustAsset("docker.js")), ""))
 
 	return nil
 }
 
-func privateDockerCall(vm *notto.Notto) func(call otto.FunctionCall) otto.Value {
+/*func privateDockerCall(vm *notto.Notto) func(call otto.FunctionCall) otto.Value {
 	return func(call otto.FunctionCall) otto.Value {
 
 		var (
@@ -39,8 +38,8 @@ func privateDockerCall(vm *notto.Notto) func(call otto.FunctionCall) otto.Value 
 
 		return otto.UndefinedValue()
 	}
-}
+}*/
 
-func privateDockerBuildCall(vm *notto.Notto, client *dockerclient.Client, options otto.Object) otto.Value {
+/*func privateDockerBuildCall(vm *notto.Notto, client *dockerclient.Client, options otto.Object) otto.Value {
 
-}
+}*/

@@ -2,9 +2,9 @@
 package s3
 
 import (
-	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 
 	"github.com/kildevaeld/notto"
 	"github.com/kildevaeld/notto/loop"
@@ -53,21 +53,6 @@ func (t *s3Task) Execute(vm *otto.Otto, l *loop.Loop) error {
 	if _, err := t.cb.Call(otto.NullValue(), arguments...); err != nil {
 		return err
 	}
-	/*t.jsRes.Set("status", t.status)
-	t.jsRes.Set("statusText", t.statusText)
-	h := mustValue(t.jsRes.Get("headers")).Object()
-	for k, vs := range t.headers {
-		for _, v := range vs {
-			if _, err := h.Call("append", k, v); err != nil {
-				return err
-			}
-		}
-	}
-	t.jsRes.Set("_body", string(t.body))
-
-	if _, err := t.cb.Call(otto.NullValue(), arguments...); err != nil {
-		return err
-	}*/
 
 	return nil
 }
@@ -162,7 +147,7 @@ func (self *s3_impl) Get(call otto.FunctionCall) otto.Value {
 	}
 
 	self.vm.Runloop().Add(t)
-
+	target = filepath.Join(self.vm.ProcessAttr().Cwd, target)
 	go func() {
 		defer self.vm.Runloop().Ready(t)
 
@@ -215,7 +200,6 @@ func (self *s3_impl) List(call otto.FunctionCall) otto.Value {
 			t.err = err
 			return
 		}
-		fmt.Printf("%#v", res)
 
 		t.content = res.Contents
 

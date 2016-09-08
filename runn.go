@@ -48,18 +48,19 @@ func (self *Runn) Run(name, cmd string, config RunConfig) error {
 		return fmt.Errorf("Store: %s", err)
 	}
 
-	close := func() {}
+	defer reader.Close()
+	/*close := func() {}
 
 	if closer, ok := reader.(io.ReadCloser); ok {
 		close = func() { closer.Close() }
 	}
 
-	defer close()
+	defer close()***/
 
 	tmp := os.TempDir()
 	target := filepath.Join(tmp, "runn", name)
 
-	if err = os.MkdirAll(target, 0766); err != nil {
+	if err = os.MkdirAll(target, 0755); err != nil {
 		return err
 	}
 

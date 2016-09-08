@@ -19,12 +19,13 @@ type Config struct {
 }
 
 type filestore struct {
-	config Config
+	config      Config
+	bundlesPath string
 }
 
 func (self *filestore) init() error {
-	os.MkdirAll(filepath.Join(self.config.Path, "bundles"), 0766)
-	return nil
+	self.bundlesPath = filepath.Join(self.config.Path, "bundles")
+	return os.MkdirAll(self.bundlesPath, 0755)
 }
 
 func (self *filestore) Set(name string, r io.Reader, bundle runnlib.Bundle, length int64) error {
@@ -36,9 +37,9 @@ func (self *filestore) Set(name string, r io.Reader, bundle runnlib.Bundle, leng
 	defer file.Close()
 	_, err := io.Copy(file, r)
 	if err == nil {
-		bundlePath := filepath.Join(self.config.Path, "bundles", name+".json")
+		bundlePath := filepath.Join(self.bundlesPath, name+".json")
 		if b, e := json.MarshalIndent(bundle, "", "  "); e == nil {
-			err = ioutil.WriteFile(bundlePath, b, 0666)
+			err = ioutil.WriteFile(bundlePath, b, 0755)
 		} else {
 			err = e
 		}
@@ -48,7 +49,7 @@ func (self *filestore) Set(name string, r io.Reader, bundle runnlib.Bundle, leng
 
 }
 
-func (self *filestore) Get(name string) (io.Reader, error) {
+func (self *filestore) Get(name string) (io.ReadCloser, error) {
 	path := filepath.Join(self.config.Path, name+".zip")
 	f, e := os.Open(path)
 	if e != nil {
@@ -61,15 +62,15 @@ func (self *filestore) Get(name string) (io.Reader, error) {
 
 func (self *filestore) Remove(name string) error {
 	path := filepath.Join(self.config.Path, name+".zip")
-	bundlePath := filepath.Join(self.config.Path, "bundles", name+".json")
+	bundlePath := filepath.Join(self.bundlesPath, name+".json")
 	os.RemoveAll(path)
 	return os.RemoveAll(bundlePath)
 }
 
 func (self *filestore) List() []runnlib.Bundle {
 	var out []runnlib.Bundle
-	path := filepath.Join(self.config.Path, "bundles")
-	files, err := ioutil.ReadDir(path)
+
+	files, err := ioutil.ReadDir(self.bundlesPath)
 	if err != nil {
 		fmt.Printf("fs:list: %s\n", err)
 		return out
@@ -77,12 +78,12 @@ func (self *filestore) List() []runnlib.Bundle {
 	//fmt.Printf("file store list")
 	for _, file := range files {
 		if file.IsDir() || !strings.HasSuffix(file.Name(), ".json") {
-
+			os.RemoveAll(filepath.Join(self.bundlesPath, file.Name()))
 			continue
 		}
 
 		var b []byte
-		if b, err = ioutil.ReadFile(filepath.Join(path, file.Name())); err != nil {
+		if b, err = ioutil.ReadFile(filepath.Join(self.bundlesPath, file.Name())); err != nil {
 			fmt.Printf("fs:list: %s\n", err)
 			return out
 		}
@@ -110,7 +111,7 @@ func init() {
 			err = mapstructure.Decode(t.ToMap(), &config)
 		}
 		if err == nil {
-			fs := &filestore{config}
+			fs := &filestore{config: config}
 			err = fs.init()
 			store = fs
 		}

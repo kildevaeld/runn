@@ -105,6 +105,9 @@ func (self *Command) Run(conf RunConfig) error {
 
 	stdout, stderr, err := runnlib.GetOutput(self.config)
 
+	conf.Stderr = stderr
+	conf.Stdout = stdout
+
 	if err != nil {
 		return err
 	}
@@ -124,15 +127,12 @@ func (self *Command) Run(conf RunConfig) error {
 	if len(conf.Args) > 0 {
 		config.Args = append(config.Args, conf.Args...)
 	}
+
 	if len(self.config.Interpreter) > 0 && self.config.Interpreter[0] == "javascript" {
 		args := append([]string{self.bundle + "-" + self.name}, config.Args...)
 		v, _ := vm.NewVM(stdout, stderr, self.config.WorkDir, args, mergeMap(self.config.Environment, notto.Environ(conf.Environ).ToMap()))
 		_, e := v.Run(self.config.Cmd, self.config.WorkDir)
 		return e
-	}
-
-	if len(conf.Environ) > 0 {
-		config.Environment = mergeMap(config.Environment, notto.Environ(conf.Environ).ToMap())
 	}
 
 	cmd, cerr := getCommand(config)

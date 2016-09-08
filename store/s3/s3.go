@@ -18,12 +18,12 @@ type Config struct {
 	Bucket       string
 }
 
-type filestore struct {
+type s3filestore struct {
 	config Config
 	bucket *s3.Bucket
 }
 
-func (self *filestore) init() error {
+func (self *s3filestore) init() error {
 
 	auth := aws.Auth{
 		AccessKey: self.config.AccessKey,
@@ -37,7 +37,7 @@ func (self *filestore) init() error {
 	return nil
 }
 
-func (self *filestore) Set(name string, r io.Reader, bundle runnlib.Bundle, length int64) error {
+func (self *s3filestore) Set(name string, r io.Reader, bundle runnlib.Bundle, length int64) error {
 	//_, err := self.client.PutObject(self.config.Bucket, name, r, "application/zip")
 	//return err
 	err := self.bucket.PutReader(name, r, length, "application/zip", s3.Private)
@@ -53,7 +53,7 @@ func (self *filestore) Set(name string, r io.Reader, bundle runnlib.Bundle, leng
 	return err
 }
 
-func (self *filestore) Get(name string) (io.Reader, error) {
+func (self *s3filestore) Get(name string) (io.ReadCloser, error) {
 
 	r, e := self.bucket.GetReader(name)
 
@@ -65,7 +65,7 @@ func (self *filestore) Get(name string) (io.Reader, error) {
 	return r, e
 }
 
-func (self *filestore) List() []runnlib.Bundle {
+func (self *s3filestore) List() []runnlib.Bundle {
 	var out []runnlib.Bundle
 	r, e := self.bucket.List("bundles/", "/", "", 1000)
 	if e != nil {
@@ -92,7 +92,7 @@ func (self *filestore) List() []runnlib.Bundle {
 	return out
 }
 
-func (self *filestore) Remove(name string) error {
+func (self *s3filestore) Remove(name string) error {
 	e := self.bucket.Del(name)
 	if e != nil {
 		return e
@@ -112,7 +112,7 @@ func init() {
 			err = mapstructure.Decode(t.ToMap(), &config)
 		}
 		if err == nil {
-			fs := &filestore{config: config}
+			fs := &s3filestore{config: config}
 			err = fs.init()
 			store = fs
 		}

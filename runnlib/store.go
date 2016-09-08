@@ -7,7 +7,7 @@ import (
 
 type Store interface {
 	Set(name string, r io.Reader, bundle Bundle, length int64) error
-	Get(name string) (io.Reader, error)
+	Get(name string) (io.ReadCloser, error)
 	List() []Bundle
 	Remove(name string) error
 }

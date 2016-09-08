@@ -17,7 +17,6 @@ package cmd
 import (
 	"fmt"
 
-	"github.com/kildevaeld/prompt"
 	"github.com/spf13/cobra"
 )
 
@@ -38,8 +37,7 @@ var listCmd = &cobra.Command{
 			return
 		}
 
-		ui := prompt.NewUI()
-		ui.Printf("Bundles\n")
+		fmt.Printf("Bundles\n\n")
 		/*ui.PaginatedList("", func(page int) []string {
 
 			return nil
@@ -49,7 +47,7 @@ var listCmd = &cobra.Command{
 			if desc == "" {
 				desc = "No description..."
 			}
-			ui.Printf("%s\t\t%s\n", bundle.Name, bundle.Description)
+			fmt.Printf("%s\t\t%s\n", bundle.Name, bundle.Description)
 		}
 
 		fmt.Println("")

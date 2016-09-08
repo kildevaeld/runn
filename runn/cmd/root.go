@@ -25,6 +25,8 @@ import (
 	"github.com/spf13/viper"
 )
 
+var VERSION string
+
 var cfgFile string
 var versionFlag bool
 
@@ -37,7 +39,7 @@ var RootCmd = &cobra.Command{
 	// has an action associated with it:
 	Run: func(cmd *cobra.Command, args []string) {
 		if versionFlag {
-			fmt.Printf("runn v0.0.3\n")
+			fmt.Printf("runn %s\n", VERSION)
 		}
 	},
 }

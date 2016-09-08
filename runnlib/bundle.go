@@ -20,41 +20,38 @@ import (
 var NotExistsError = errors.New("NOENTRY")
 
 type BundleCommand struct {
-	Name        string
-	Description string
-	Command     CommandConfig
+	Name        string        `json:"name" valid:"notempty"`
+	Description string        `json:"description" valid:"-"`
+	Command     CommandConfig `command:"" valid:"-"`
 }
 
 type Bundle struct {
-	Name        string
-	Description string
-	Version     string
-	Commands    []BundleCommand
-	Context     []string
+	Name        string          `json:"name" valid:"notempty"`
+	Description string          `json:"description,omitempty" valid:"-"`
+	Version     string          `json:"version,omitempty" valid:"semver,required"`
+	Commands    []BundleCommand `json:"commands" valid"-"`
+	Context     []string        `json:"-" valid:"-"`
 }
 
 func GetBundleFromPath(dir string, v *Bundle) (err error) {
-	p := filepath.Join(dir, "bundle.json")
+	fileTypes := []string{".json", ".yaml"}
 
-	if _, err = os.Stat(p); err == nil {
-
-		b, e := ioutil.ReadFile(p)
-		if e != nil {
-			return e
+	var b []byte
+	var e error
+	for _, ft := range fileTypes {
+		file := filepath.Join(dir, "bundle"+ft)
+		if b, e = ioutil.ReadFile(file); e != nil {
+			continue
 		}
 
-		return json.Unmarshal(b, v)
-
-	}
-
-	p = filepath.Join(dir, "bundle.yaml")
-	if _, err = os.Stat(p); err == nil {
-		b, e := ioutil.ReadFile(p)
-		if e != nil {
-			return e
+		switch ft {
+		case ".json":
+			return json.Unmarshal(b, v)
+		case ".yaml":
+			return yaml.Unmarshal(b, v)
+		default:
+			// Should no happen
 		}
-
-		return yaml.Unmarshal(b, v)
 	}
 
 	return NotExistsError
@@ -83,7 +80,7 @@ func getInterpreterFromExt(ext string) []string {
 	case ".sh":
 		return []string{"sh", "-c"}
 	case ".js":
-		return []string{"node"}
+		return []string{"javascript"}
 	case ".py":
 		return []string{"python"}
 	default:

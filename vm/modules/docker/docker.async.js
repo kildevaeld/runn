@@ -11,23 +11,34 @@ function Docker() {
 exports.Docker = Docker;
 
 function call(cmd, args) {
-	var s = "docker " + cmd;
+	var s = "docker " + cmd.trim()
 	if (args) {
-		s += Array.isArray(args) ? args.join(' ') : args;
+		s += " " + (Array.isArray(args) ? args.join(' ') : args);
 	}
-
-	return sh.exec(s).stdout
+	s = s.trim();
+	//var s = format('%s %s', cmd, args.join(' '))
+	
+	return new Promise(function (resolve, reject) {
+		//console.log('call:', s)
+		module.__private_docker(s, function (err, result) {
+			if (err) return reject(err);
+			resolve(result);
+		});
+	});
+	
 }
 
 var proto = Docker.prototype
 
 var multiProps = ['env', 'envFile', 'publish', 'volumne']
 
+
 proto.create = function (name, image, options) {
 	options = options || {};
 
     var flags = []
     for (var key in options) {
+		
         var val = options[key];
         if (!!~multiProps.indexOf(key)) {
             if ('envFile' == key) key = 'env-file'
@@ -39,14 +50,20 @@ proto.create = function (name, image, options) {
         } else {
             flags.push('--' + key + ' ' + val);
         }
-
-
     }
-	cmd = format('docker run -d %s --name %s %s', flags.join(' ').trim(), name, image);
-	return sh.exec(cmd).stdout.trim();
+	
+	var args = "";
+	if (flags.length) {
+		args = format("%s ", flags.join(' '));
+	}
+	args += format('-d --name %s %s', name, image);
+	return call("run", args)
 }
 
-proto.start = function (name, image, options) {
+proto.start = function (name) {
+	return call("start", name);
+}
+/*proto.start = function (name, image, options) {
     options = options || {};
 
     var flags = []
@@ -64,19 +81,22 @@ proto.start = function (name, image, options) {
         }
 
     }
-	var cmd;
+
+	var cmd, args;
 	if (!this.hasContainer(name)) {
-		cmd = format('docker run -d %s --name %s %s', flags.join(' '), name, image);
+		cmd = "run"
+		args = format('-d %s --name %s %s', flags.join(' '), name, image);
 	} else if (this.isRunning(name)) {
-		return sh.exec('docker inspect -f {{.Id}} ' + name).stdout.trim()
+		cmd = "inspect"
+		args = 
+		cmd = sh.exec('docker inspect -f {{.Id}} ' + name).stdout.trim()
 	} else {
 		cmd = "docker start " + name;
 		sh.exec(cmd);
 		cmd = 'docker inspect -f {{.Id}} ' + name
 	}
-	console.log('running docker ', cmd)
 	return sh.exec(cmd).stdout.trim();
-}
+}*/
 
 proto.stop = function () {
 	return call('stop', slice.call(arguments));
@@ -96,27 +116,34 @@ proto.build = function (path, tag) {
 
 proto.isRunning = function (name) {
 	var reg = new RegExp('\\s*(' + name + ')\\s+')
-	return reg.test(sh.exec("docker ps").stdout)
+	return call('ps').then(function (out) {
+		return reg.test(out);
+	});
 }
 
 proto.hasContainer = function (name) {
 	var reg = new RegExp('\\s*(' + name + ')\\s+')
-	return reg.test(sh.exec("docker ps -a").stdout)
+	return call('ps', '-a').then(function (out) {
+		return reg.test(out);
+	});
+}
+
+proto.list = function (all) {
+	return call("ps", !!all ? ["-a"] : []);
 }
 
 proto.hasImage = function (name) {
 	var reg = new RegExp('\\s*(' + name + ')\\s+')
-	var o = reg.test(sh.exec("docker images").stdout)
-	return o;
+	
+	return call('images').then(function (out) {
+		return reg.test(out);
+	});
 }
 
 proto.inspect = function (name) {
-	try {
-		var json = call('inspect', [name]);
-		return JSON.parse(json);
-	} catch (e) {
-        console.log(e)
-		return null;
-	}
+	return call('inspect', name)
+	.then(function (out) {
+		return JSON.parse(out);
+	})
 }
 

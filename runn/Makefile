@@ -32,4 +32,4 @@ install: ${BINARY}
 	install -m 0755 ${BINARY} ${PREFIX}/bin/runn
 
 uninstall:
-	rm ${PREFIX}/bin/bp
+	rm ${PREFIX}/bin/runn

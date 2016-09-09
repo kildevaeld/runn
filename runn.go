@@ -6,11 +6,14 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/kildevaeld/runn/runnlib"
+	"github.com/mitchellh/go-homedir"
 )
 
 type Config struct {
+	Root         string `json:"config_path,omitempty"`
 	Store        string
 	StoreOptions interface{}
 	Key          string
@@ -25,8 +28,11 @@ type RunConfig struct {
 }
 
 type Runn struct {
-	store runnlib.Store
-	key   []byte
+	store       runnlib.Store
+	config      Config
+	cachePath   string
+	runtimePath string
+	//key   []byte
 }
 
 func (self *Runn) AddFromDir(path string) error {
@@ -34,21 +40,57 @@ func (self *Runn) AddFromDir(path string) error {
 	if err != nil {
 		return err
 	}*/
-	buf, bundle, size, err := runnlib.ArchieveDir(path, self.key)
+	buf, bundle, size, err := runnlib.ArchieveDir(path, nil)
 	if err != nil {
 		return err
 	}
 	return self.store.Set(bundle.Name, buf, bundle, size)
 }
 
+func (self *Runn) ClearCache() error {
+	os.RemoveAll(self.cachePath)
+	return os.MkdirAll(self.cachePath, 0755)
+}
+
 func (self *Runn) Run(name, cmd string, config RunConfig) error {
 
-	reader, err := self.store.Get(name)
-	if err != nil {
-		return fmt.Errorf("Store: %s", err)
+	var reader *os.File
+	var size int64
+	var err error
+	cache := filepath.Join(self.cachePath, name+".zip")
+	if stat, err := os.Stat(cache); err == nil {
+		mtime := stat.ModTime()
+		diff := time.Now().Sub(mtime)
+		size = stat.Size()
+		if (diff / time.Minute) >= 5 {
+
+		}
+		reader, err = os.Open(cache)
+	} else {
+		tmp, err := self.store.Get(name)
+
+		if err != nil {
+			return fmt.Errorf("Store: %s", err)
+		}
+		if reader, err = os.Create(cache); err != nil {
+			tmp.Close()
+			return err
+		}
+
+		size, err = io.Copy(reader, tmp)
+		tmp.Close()
+		reader.Close()
+		if err != nil {
+
+			return err
+		}
+
+		reader, _ = os.Open(cache)
+
 	}
 
 	defer reader.Close()
+
 	/*close := func() {}
 
 	if closer, ok := reader.(io.ReadCloser); ok {
@@ -66,7 +108,7 @@ func (self *Runn) Run(name, cmd string, config RunConfig) error {
 
 	defer os.RemoveAll(target)
 
-	if err := runnlib.UnarchiveToDir(target, reader, 0, self.key); err != nil {
+	if err := runnlib.UnarchiveToDir(target, reader, size, nil); err != nil {
 		return err
 	}
 
@@ -93,13 +135,36 @@ func New(config Config) (*Runn, error) {
 		return nil, errors.New("config needs a store")
 	}
 
-	store, serr := runnlib.GetStore(config.Store, config.StoreOptions)
+	var (
+		store runnlib.Store
+		err   error
+	)
+	if config.Root == "" {
+		var home string
+		if home, err = homedir.Dir(); err != nil {
+			return nil, err
+		}
 
-	if serr != nil {
-		return nil, serr
+		config.Root = filepath.Join(home, ".runn")
 	}
 
-	run := &Runn{store, []byte(config.Key)}
+	if _, err = os.Stat(""); err != nil {
+		if err = os.MkdirAll(config.Root, 0755); err != nil {
+			return nil, err
+		}
+	}
+
+	cachePath := filepath.Join(config.Root, "cache")
+	runtimePath := filepath.Join(config.Root, "runtime")
+
+	os.MkdirAll(cachePath, 0755)
+	os.MkdirAll(runtimePath, 0755)
+
+	if store, err = runnlib.GetStore(config.Store, config.StoreOptions); err != nil {
+		return nil, err
+	}
+
+	run := &Runn{store, config, cachePath, runtimePath}
 
 	return run, nil
 }

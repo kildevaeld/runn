@@ -12,8 +12,6 @@ import (
 	"strings"
 
 	"gopkg.in/yaml.v2"
-
-	"github.com/kildevaeld/go-filecrypt"
 )
 
 func getInterpreterFromPath(ext string) []string {
@@ -29,17 +27,17 @@ func getInterpreterFromPath(ext string) []string {
 	}
 }
 
-func UnarchiveToDir(path string, source io.Reader, size int64, key_raw []byte) error {
+func UnarchiveToDir(path string, source io.ReaderAt, size int64, key_raw []byte) error {
 
-	key := filecrypt.Key(key_raw)
+	//key := filecrypt.Key(key_raw)
 
-	out := bytes.NewBuffer(nil)
+	/*out := bytes.NewBuffer(nil)
 	//out, _ := os.Create("test.zip")
 	if err := filecrypt.Decrypt(out, source, &key); err != nil {
 		return fmt.Errorf("decrypt: %s", err)
-	}
+	}*/
 
-	arc, err := zip.NewReader(bytes.NewReader(out.Bytes()), int64(out.Len()))
+	arc, err := zip.NewReader(source, size)
 	if err != nil {
 		return fmt.Errorf("error: %s", err)
 	}
@@ -180,15 +178,15 @@ func ArchieveDir(path string, key_raw []byte) (io.Reader, Bundle, int64, error) 
 		return nil, bundle, 0, fmt.Errorf("zip-close: %s", err)
 	}
 
-	out := bytes.NewBuffer(nil)
+	/*out := bytes.NewBuffer(nil)
 
 	key := filecrypt.Key(key_raw)
 
 	if _, err := filecrypt.Encrypt(out, bytes.NewReader(buf.Bytes()), &key); err != nil {
 		return nil, bundle, 0, fmt.Errorf("encrypt: %s", err)
-	}
+	}*/
 
-	return out, bundle, int64(out.Len()), nil
+	return bytes.NewReader(buf.Bytes()), bundle, int64(buf.Len()), nil
 
 }
 

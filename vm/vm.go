@@ -7,6 +7,7 @@ import (
 	"github.com/kildevaeld/notto"
 	"github.com/kildevaeld/notto/modules/fetch"
 	"github.com/kildevaeld/notto/modules/fs"
+	"github.com/kildevaeld/notto/modules/fsm"
 	"github.com/kildevaeld/notto/modules/global"
 	"github.com/kildevaeld/notto/modules/process"
 	"github.com/kildevaeld/notto/modules/promise"
@@ -47,7 +48,7 @@ func NewVM(stdout, stderr io.Writer, workdir string, args []string, env map[stri
 	result = mustError(result)(global.Define(vm))
 	result = mustError(result)(fs.Define(vm))
 	result = mustError(result)(ui.Define(vm))
-
+	result = mustError(result)(fsm.Define(vm))
 	result = mustError(result)(s3.Define(vm))
 	result = mustError(result)(archive.Define(vm))
 	result = mustError(result)(docker.Define(vm))

@@ -39,7 +39,7 @@ var Builder = (function (__super) {
     function getCreateOptions(mod, env) {
         var out = {}
         var exclude = ['name', 'postrun', 'prerun', 'prebuild', 'postbuild', 
-            'build', 'dependencies', 'phase', 'prestart', 'poststart']
+            'build', 'dependencies', 'phase', 'prestart', 'poststart', 'initialize']
         if (mod.phase) {
 
             if (!Array.isArray) mod.phase = [mod.phase];
@@ -79,6 +79,9 @@ var Builder = (function (__super) {
 
     _.extend(Builder.prototype, EventEmitter.prototype, {
 
+        _modName: function(mod) {
+            return mod.name + "-" + this.env
+        },
 
         build: function () {
             var self = this;
@@ -221,7 +224,7 @@ var Builder = (function (__super) {
         remove: function () {
             var self = this;
             return eachAsync(this.modules.reverse(), function (mod) {
-                console.log('removing ', mod.name)
+                
                 return new Promise(function (resolve, rejecrt) {
                     setTimeout(function () {
                         console.log('removed ', mod.name);

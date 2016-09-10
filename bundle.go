@@ -4,8 +4,10 @@ import (
 	"bytes"
 	"errors"
 	"net"
+	"strings"
 	"text/template"
 
+	"github.com/fatih/camelcase"
 	"github.com/kildevaeld/dict"
 	"github.com/kildevaeld/runn/runnlib"
 )
@@ -32,6 +34,14 @@ func GetLocalIP() string {
 type Bundle struct {
 	workdir string
 	config  runnlib.Bundle
+}
+
+func camelCaseToEnv(k string) string {
+	split := camelcase.Split(k)
+	for i, s := range split {
+		split[i] = strings.ToUpper(s)
+	}
+	return strings.Join(split, "_")
 }
 
 func interpolateString(arg string, locals dict.Map) (string, error) {
@@ -88,12 +98,13 @@ func interpolateCommand(cmd *runnlib.CommandConfig, locals dict.Map) (runnlib.Co
 
 	if cmd.Environment != nil {
 		out.Environment = make(map[string]string)
+
 		for k, v := range cmd.Environment {
-			out.Environment[k], _ = interpolateString(v, locals)
+			out.Environment[camelCaseToEnv(k)], _ = interpolateString(v, locals)
 		}
 		for k, v := range locals {
 			if s, ok := v.(string); ok {
-				out.Environment[k] = s
+				out.Environment[camelCaseToEnv(k)] = s
 			}
 
 		}

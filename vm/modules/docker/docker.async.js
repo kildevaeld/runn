@@ -37,7 +37,7 @@ function call(cmd, args, debug) {
 
 var proto = Docker.prototype
 
-var multiProps = ['env', 'envFile', 'publish', 'volumne', 'link']
+var multiProps = ['env', 'envFile', 'publish', 'volume', 'link']
 
 
 proto.create = function (name, image, options) {
@@ -46,7 +46,7 @@ proto.create = function (name, image, options) {
     var flags = []
 	
     for (var key in options) {
-		
+		if (!!~['image'].indexOf(key)) continue;
         var val = options[key];
         if (!!~multiProps.indexOf(key)) {
             if ('envFile' == key) key = 'env-file'
@@ -55,18 +55,18 @@ proto.create = function (name, image, options) {
             } else if (Array.isArray(val)) {
 				val = val.map(function (v) { return '--' + key + '=' + v; });
 			} else  {
-				var v = [];
+				var out = [];
 				for (var k in val) {
-					var kk = ""
+					var v = val[k]
 					if (/\d+/.test(k)) {
-						kk = ""
+						k = ""
 					} else {
-						kk += ":"
+						k += key == 'link' ? ":" : "="
 					}
-					v.push('--' + key + "=" + kk + val[k]);
+					out.push('--' + key + "=" + k + v);
 				
 				}
-				val = v;
+				val = out;
 			}
             flags.push(val.join(' '));
         } else {

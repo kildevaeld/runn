@@ -221,16 +221,51 @@ var Builder = (function (__super) {
             })
         },
 
-        remove: function () {
+        remove: function (removeImages) {
             var self = this;
+
             return eachAsync(this.modules.reverse(), function (mod) {
-                
-                return new Promise(function (resolve, rejecrt) {
-                    setTimeout(function () {
-                        console.log('removed ', mod.name);
-                        resolve(mod)
-                    }, 600)
+                var modName = mod.name,
+                    imageName = mod.image||mod.name;
+                return self.docker.hasContainer(mod.name)
+                .then(function (has) {
+                    self.trigger('notification', n.removing, mod)
+                    if (has) {
+                        return runHook("preremove", mod)
+                        .then(function () {
+                            return self.docker.remove(modName).then(function () { return has; });
+                        })
+                    } else {
+                        self.trigger('notification', n.skipping, mod);
+                    }
+                    return false;
+                }).then(function (has) {
+                    var p = Promise.resolve()
+                    if (has) {
+                        self.trigger('notification', n.removing, mod)
+                        p = runHook('postremove', mod);
+                    }
+
+                    if (removeImages) {
+                        return p.then(function () { return self.docker.hasImage(imageName); });
+                    }
+                    return p.then(function () { return false; })
+                }).then(function (has) {
+                    if (has) {
+                        self.trigger('notification', n.removingimage, mod)
+                        return runHook("preremoveimage", mod)
+                        .then(function () {
+                            return self.docker.rmi(imageName).then(function () { return has; });
+                        })
+                    }
+                    return false;
+                }).then(function (has) {
+                    if (has)  {
+                        self.trigger('notification', n.removedimage, mod)
+                        return runHook('postremoveimage', mod);
+                    }
                 })
+               
             }).then(function () {
                 self.modules.reverse();
             })
@@ -322,7 +357,11 @@ var n = exports.notifications = {
     building: 'building',
     build: 'build',
     buildError: 'builderror',
-    skipping: "skipping"
+    skipping: "skipping",
+    removing: "removing",
+    removed: "removed",
+    removingimage: 'removingimage',
+    removedimage: "removedimage"
 }
 
 function parseModule(options, known_modules) {

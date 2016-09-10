@@ -124,11 +124,11 @@ proto.stop = function () {
 	return call('stop', slice.call(arguments));
 }
 
-proto.rm = function (name) {
+proto.rm = proto.remove = function (name) {
 	return call('rm -f', [name]);
 }
 
-proto.rmi = function (name) {
+proto.rmi = proto.removeImage = function (name) {
 	return call('rmi', [name]);
 }
 

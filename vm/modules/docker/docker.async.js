@@ -1,67 +1,89 @@
 var sh = require('sh'),
-	format = require('util').format
+	format = require('util').format,
+	_ = require('underscore');
 
 var slice = Array.prototype.slice;
 
 
-function Docker() {
-
+function Docker(options) {
+	options = options||{}
+	this.debug = options.debug
 }
 
 exports.Docker = Docker;
 
-function call(cmd, args) {
+function call(cmd, args, debug) {
+	
 	var s = "docker " + cmd.trim()
 	if (args) {
 		s += " " + (Array.isArray(args) ? args.join(' ') : args);
 	}
-	s = s.trim();
+	s = s.split(' ').map(function (m) { return m.trim(); }).join(' ').trim();
+
+
 	//var s = format('%s %s', cmd, args.join(' '))
-	
 	return new Promise(function (resolve, reject) {
-		//console.log('call:', s)
+		if (debug)
+			console.log('call:', s);
+
 		module.__private_docker(s, function (err, result) {
 			if (err) return reject(err);
-			resolve(result);
+			resolve(result.trim());
 		});
 	});
 	
 }
 
+
 var proto = Docker.prototype
 
-var multiProps = ['env', 'envFile', 'publish', 'volumne']
+var multiProps = ['env', 'envFile', 'publish', 'volumne', 'link']
 
 
 proto.create = function (name, image, options) {
 	options = options || {};
 
     var flags = []
+	
     for (var key in options) {
 		
         var val = options[key];
         if (!!~multiProps.indexOf(key)) {
             if ('envFile' == key) key = 'env-file'
-            if (!Array.isArray(val)) {
-                val = [val]
-            }
-            val = val.map(function (v) { return '--' + key + ' ' + v; });
+            if (typeof val === 'string') {
+                val = ["--" + key + "=" + val];
+            } else if (Array.isArray(val)) {
+				val = val.map(function (v) { return '--' + key + '=' + v; });
+			} else  {
+				var v = [];
+				for (var k in val) {
+					var kk = ""
+					if (/\d+/.test(k)) {
+						kk = ""
+					} else {
+						kk += ":"
+					}
+					v.push('--' + key + "=" + kk + val[k]);
+				
+				}
+				val = v;
+			}
             flags.push(val.join(' '));
         } else {
-            flags.push('--' + key + ' ' + val);
+            flags.push('--' + key + '=' + val);
         }
     }
 	
 	var args = "";
-	if (flags.length) {
+	if (flags.length > 0) {
 		args = format("%s ", flags.join(' '));
 	}
-	args += format('-d --name %s %s', name, image);
-	return call("run", args)
+	args += format('-d --name=%s %s', name, image);
+	return call("run", args, this.debug)
 }
 
 proto.start = function (name) {
-	return call("start", name);
+	return call("start", name, this.debug);
 }
 /*proto.start = function (name, image, options) {
     options = options || {};

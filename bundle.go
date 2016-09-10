@@ -122,12 +122,15 @@ func (self *Bundle) Run(name string, config RunConfig) error {
 	locals := dict.NewMap()
 	locals["WorkDir"] = self.workdir
 	locals["HostIP"] = GetLocalIP()
-
+	locals["RuntimePath"] = config.RuntimePath
 	if config.Locals != nil {
 		for k, v := range config.Locals {
 			locals[k] = v
 		}
 	}
+
+	//config.Environ = append(Config.Environ, "RUNTIME_PATH="+config.RuntimePath)
+	//config.Environ.Add("RUNTIME_PATH=" + config.RuntimePath)
 
 	conf, err := interpolateCommand(&comm.Command, locals)
 	if err != nil {

@@ -5,15 +5,7 @@ import (
 
 	multierror "github.com/hashicorp/go-multierror"
 	"github.com/kildevaeld/notto"
-	"github.com/kildevaeld/notto/modules/fetch"
-	"github.com/kildevaeld/notto/modules/fs"
-	"github.com/kildevaeld/notto/modules/fsm"
-	"github.com/kildevaeld/notto/modules/global"
-	"github.com/kildevaeld/notto/modules/process"
-	"github.com/kildevaeld/notto/modules/promise"
-	"github.com/kildevaeld/notto/modules/shell"
-	"github.com/kildevaeld/notto/modules/ui"
-	"github.com/kildevaeld/notto/modules/util"
+	"github.com/kildevaeld/notto/modules"
 	"github.com/kildevaeld/runn/vm/modules/archive"
 	"github.com/kildevaeld/runn/vm/modules/docker"
 	"github.com/kildevaeld/runn/vm/modules/s3"
@@ -39,7 +31,7 @@ func NewVM(stdout, stderr io.Writer, workdir string, args []string, env map[stri
 	a.Environ = notto.MapToEnviron(env)
 	a.Cwd = workdir
 
-	var result error
+	/*var result error
 	result = mustError(result)(shell.Define(vm, false))
 	result = mustError(result)(process.Define(vm))
 	result = mustError(result)(util.Define(vm))
@@ -49,6 +41,14 @@ func NewVM(stdout, stderr io.Writer, workdir string, args []string, env map[stri
 	result = mustError(result)(fs.Define(vm))
 	result = mustError(result)(ui.Define(vm))
 	result = mustError(result)(fsm.Define(vm))
+	result = mustError(result)(s3.Define(vm))
+	result = mustError(result)(archive.Define(vm))
+	result = mustError(result)(docker.Define(vm))*/
+	result := modules.Define(vm)
+	if result != nil {
+		return nil, result
+	}
+
 	result = mustError(result)(s3.Define(vm))
 	result = mustError(result)(archive.Define(vm))
 	result = mustError(result)(docker.Define(vm))

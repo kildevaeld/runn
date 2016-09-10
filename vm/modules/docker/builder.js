@@ -28,19 +28,20 @@ var eachAsync = function (list, cb) {
 
 var Builder = (function (__super) {
 
-    function Builder(modules, env) {
+    function Builder(modules, env, debug) {
         __super.call(this);
         this.modules = modules;
-        this.env = 'development';
+        this.env = env //||'development';
         //this.startup();
-        this.docker = new Docker();
+        this.docker = new Docker({debug:!!debug});
     }
 
     function getCreateOptions(mod, env) {
         var out = {}
-        var exclude = ['name', 'postrun', 'prerun', 'prebuild', 'postbuild', 'build', 'dependencies', 'phase']
+        var exclude = ['name', 'postrun', 'prerun', 'prebuild', 'postbuild', 
+            'build', 'dependencies', 'phase', 'prestart', 'poststart']
         if (mod.phase) {
-            
+
             if (!Array.isArray) mod.phase = [mod.phase];
             if (!!!~mod.phase.indexOf(env)) {
                 self.trigger('notification', n.skipping, mod);
@@ -48,7 +49,7 @@ var Builder = (function (__super) {
             }
         }
         for (var key in mod) {
-            
+
             var value = mod[key];
             if (key[0] == "$") {
                 if (key.substr(1) === env) {
@@ -57,7 +58,7 @@ var Builder = (function (__super) {
                     out = _.extend(out, mod[key]);
                 }
             } else if (!!~exclude.indexOf(key)) {
-                
+
                 continue;
             } else {
                 if (isObject(value) && !Array.isArray(value)) {
@@ -71,9 +72,14 @@ var Builder = (function (__super) {
         return out;
     }
 
+    function runHook(hook, mod) {
+        if (typeof mod[hook] === 'function') return Promise.resolve(mod[hook].call(mod, mod));
+        return Promise.resolve();
+    }
+
     _.extend(Builder.prototype, EventEmitter.prototype, {
 
-       
+
         build: function () {
             var self = this;
             var builds = this.modules.map(function (step) {
@@ -91,25 +97,29 @@ var Builder = (function (__super) {
 
         },
 
-        _buildModule: function (options) {
+        _buildModule: function (mod) {
             var self = this;
-            return new Promise(function (resolve, reject) {
-                self.trigger('notification', n.building, options);
-                var build = options.build;
-                //if (!build) return;
-                if (build.dockerfile == null) {
-                    self.trigger('notification', n.build,options);
-                    return resolve()
-                }
+            self.trigger('notification', n.building, mod);
+            var build = mod.build;
+            
+            if (build == undefined) return Promise.resolve();
+            if (build.dockerfile == null && build.image == null) {  
+                self.trigger('notification', n.build, mod);
+                return Promise.resolve()
+            } 
 
-                return self.docker.build(build.dockerfile, options.name)
-                    .then(function (out) {
-                        self.trigger('notification', n.build ,options);
-                        resolve(out);
-                    }).catch(reject)
+            return runHook('prebuild', mod).then(function () {
+                return self.docker.build(build.dockerfile, mod.image||mod.name);
+            })
+                .then(function (out) {
+                    return runHook('postbuild', mod)
+                        .then(function () {
+                            self.trigger('notification', n.build, mod);
+                            return out;
+                        })
 
 
-            });
+                })
         },
 
         start: function (autoBuild) {
@@ -118,6 +128,7 @@ var Builder = (function (__super) {
             return eachAsync(this.modules, function (mod) {
                 if (mod.phase) {
                     if (!Array.isArray(mod.phase)) mod.phase = [mod.phase];
+
                     if (!!!~mod.phase.indexOf(self.env)) {
                         self.trigger('notification', n.skipping, mod);
                         return;
@@ -132,32 +143,46 @@ var Builder = (function (__super) {
 
                 return Promise.all(promises)
                     .then(function (ret) {
+                        
                         self.trigger('notification', n.starting, mod)
-                        if (ret[1]) {
+                        if (ret[1] == true) {
                             self.trigger("notification", n.alreadyStarted, mod);;
                             return false;
-                        } else if (ret[0]) {
-                            return self.docker.start(mod.name).then(function () {
-                                return true;
-                            })
-                        } else if (!ret[2] && autoBuild) {
-                            return self._buildModule.call(self, mod)
+                        } else if (ret[0] == true) {
+
+                            return runHook('prestart', mod)
                                 .then(function () {
-                                    var options = getCreateOptions(mod, self.env);
-                                    return self.docker.create(name, name, options)
-                                }).then(function () {
+                                    
+                                    return self.docker.start(mod.name);
+                                })
+                                .then(function () {
                                     return true;
                                 })
+                        } else if (ret[2] != true && autoBuild == true) {
+                            return self._buildModule.call(self, mod)
+                                .then(function () {
+                                    return runHook('prestart', mod)
+                                }).then(function () {
+                                    var options = getCreateOptions(mod, self.env);
+                                    return self.docker.create(name, mod.image||name, options)
+                                })/*.then(function () {
+                                    return true;
+                                })*/
                         } else {
                             var options = getCreateOptions(mod, self.env);
-                            return self.docker.create(name, name, options)
-                            .then(function () {
-                                return true;
-                            })
+                            return runHook('prestart', mod)
+                                .then(function () {
+                                    return self.docker.create(name, mod.image||name, options)
+                                        .then(function () {
+                                            return true;
+                                        })
+                                })
+
                         }
                     }).then(function (started) {
                         if (started) {
                             self.trigger('notification', n.started, mod);
+                            return runHook('poststart', mod)
                         }
                     });
 
@@ -169,15 +194,27 @@ var Builder = (function (__super) {
         stop: function () {
             var self = this;
             return eachAsync(this.modules.reverse(), function (mod) {
-                console.log('stopping ', mod.name)
-                return new Promise(function (resolve, rejecrt) {
-                    setTimeout(function () {
-                        console.log('stopped ', mod.name);
-                        resolve(mod)
-                    }, 600)
+            
+                return self.docker.isRunning(mod.name)
+                .then(function (ok) {
+                    if (!ok) return;
+
+                    self.trigger('notification', n.stopping, mod);
+
+                    return runHook('prestop', mod)
+                    .then(function () {
+                        return self.docker.stop(mod.name);
+                    });
+                }).then(function () {
+                    self.trigger('notification', n.stopped, mod);
+                    return runHook('poststop', mod);
                 })
+
             }).then(function () {
                 self.modules.reverse();
+            }).catch(function (e) {
+                self.modules.reverse();
+                return Promise.reject(e);
             })
         },
 
@@ -236,7 +273,7 @@ function isFunction(a) {
 }
 
 
-exports.createBuilder = function (a) {
+exports.createBuilder = function (a, env, debug) {
     if (isFunction(a)) {
         a = a();
     }
@@ -245,19 +282,29 @@ exports.createBuilder = function (a) {
 
     return Promise.resolve(a)
         .then(function (options) {
+            if (typeof options.initialize === 'function') {
+                return Promise.resolve(options.initialize(options))
+                .then(function () { return options })
+            }
+            return options;
+        })
+        .then(function (options) {
 
             parseModule(options, known_modules)
 
             var out = [];
-            resolveDependencies(options.dependencies, known_modules, out);
+            if (options.dependencies != null) {
+                resolveDependencies(options.dependencies, known_modules, out);
+            }
+            
             out.push(options);
-        
+
             var builds = out.map(function (step) {
                 if (!step.build) return null;
                 return _.pick(step, ['build', 'prebuild', 'postbuild'])
             }).filter(function (step) { return step != null });
 
-            return new Builder(out);
+            return new Builder(out, env, debug);
 
         });
 }
@@ -265,6 +312,7 @@ exports.createBuilder = function (a) {
 var n = exports.notifications = {
     starting: 'starting',
     stopping: 'stopping',
+    stopped: 'stopped',
     started: 'started',
     alreadyStarted: 'alreadystarted',
     startError: 'starterror',
@@ -276,7 +324,7 @@ var n = exports.notifications = {
 
 function parseModule(options, known_modules) {
     var name = options.name;
-    
+
     if (!known_modules[name]) {
         known_modules[name] = options;
     } else if (Object.keys(known_modules[name]).length < Object.keys(options).length) {

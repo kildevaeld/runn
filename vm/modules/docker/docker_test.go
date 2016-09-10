@@ -43,7 +43,7 @@ func TestDocker(t *testing.T) {
 	var s = `
         var docker = require('docker.builder');
         var config = require('./test');
-        docker.createBuilder(config)
+        docker.createBuilder(config,'production')
         .then(function (builder) {
 
             builder.on('notification', function (e, m) {

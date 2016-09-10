@@ -16,11 +16,11 @@ module.exports = {
     env: {
 
     },
-    postrun: function () {
-
+    prestart: function () {
+        console.log('prestart')
     },
     build: {
-        dockerfile: "."
+        dockerfile: process.cwd() + "/admin/Dockerfile"
     },
     dependencies: [
         {
@@ -33,7 +33,7 @@ module.exports = {
 
             },
             build: {
-
+                dockerfile: process.cwd() + "/mysql/Dockerfile"
             },
             dependencies: [
                 {name: 'nginx'}
@@ -41,12 +41,12 @@ module.exports = {
         }, {
             name: "nginx",
             phase: ["production", "staging"],
-            build: {
-                dockerfile: "./Dockerfile"
-            },
             volumne: [
                 "./:/etc/confd"
             ],
+            prestart: function () {
+                console.log('prestart')
+            },
             publish: ["80:80","443:443"]
 
         }

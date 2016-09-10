@@ -20,11 +20,12 @@ type Config struct {
 }
 
 type RunConfig struct {
-	Environ []string
-	Args    []string
-	Stdout  io.Writer
-	Stderr  io.Writer
-	Locals  map[string]interface{}
+	Environ     []string
+	Args        []string
+	Stdout      io.Writer
+	Stderr      io.Writer
+	Locals      map[string]interface{}
+	RuntimePath string
 }
 
 type Runn struct {
@@ -91,14 +92,6 @@ func (self *Runn) Run(name, cmd string, config RunConfig) error {
 
 	defer reader.Close()
 
-	/*close := func() {}
-
-	if closer, ok := reader.(io.ReadCloser); ok {
-		close = func() { closer.Close() }
-	}
-
-	defer close()***/
-
 	tmp := os.TempDir()
 	target := filepath.Join(tmp, "runn", name)
 
@@ -106,7 +99,7 @@ func (self *Runn) Run(name, cmd string, config RunConfig) error {
 		return err
 	}
 
-	defer os.RemoveAll(target)
+	//defer os.RemoveAll(target)
 
 	if err := runnlib.UnarchiveToDir(target, reader, size, nil); err != nil {
 		return err
@@ -116,7 +109,7 @@ func (self *Runn) Run(name, cmd string, config RunConfig) error {
 	if berr != nil {
 		return berr
 	}
-
+	config.RuntimePath = self.runtimePath
 	return bundle.Run(cmd, config)
 
 }

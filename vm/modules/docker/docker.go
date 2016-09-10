@@ -1,4 +1,4 @@
-//go:generate go-bindata -pkg docker -o docker_impl.go docker.js docker.async.js builder.js
+//go:generate go-bindata -pkg docker -o docker_impl.go docker.async.js builder.js
 package docker
 
 import (
@@ -48,9 +48,13 @@ func (self *simple_task) Execute(vm *otto.Otto, loop *loop.Loop) error {
 	}*/
 	arguments = append(arguments, self.result)
 
+	//arguments = append([]interface{}{self.call}, arguments...)
 	if _, err := self.call.Call(otto.NullValue(), arguments...); err != nil {
 		return err
 	}
+	/*if _, err := vm.Call(`Function.call.call`, nil, arguments...); err != nil {
+		return err
+	}**/
 
 	return nil
 }
@@ -136,7 +140,11 @@ func privateDocker(vm *notto.Notto, str string, call otto.Value) {
 
 		out := strings.TrimSpace(string(stdout.Bytes()))
 
-		return out, nil
+		if stderr.Len() > 0 {
+			err = fmt.Errorf("CMD: %s failed\n%s", str, stderr.Bytes())
+		}
+
+		return out, err
 	})
 }
 

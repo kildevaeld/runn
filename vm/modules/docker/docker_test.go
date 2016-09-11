@@ -17,7 +17,7 @@ func mustError(result error) func(err error) error {
 	}
 }
 
-func TestDocker(t *testing.T) {
+func TBuilder(t *testing.T) {
 
 	vm := notto.New()
 
@@ -63,4 +63,32 @@ func TestDocker(t *testing.T) {
 	if e != nil {
 		t.Fatal(e)
 	}
+}
+
+func TestDocker(t *testing.T) {
+
+	vm := notto.New()
+
+	result := modules.Define(vm)
+	result = Define2(vm)
+	if result != nil {
+		t.Fatal(result)
+	}
+
+	s := `
+		var docker = require('docker').create();
+
+		docker.Start({name: "nginx"}, function (err) {
+			console.log('started: ', err)
+			docker.HasImage({name: 'sha256:1caaa506d2e83f60781476e5732a7b70e0443ab848cc484085fb2984b40fa805', timeout:1}, function (e, ok) {
+				console.log(e, ok)
+			});
+		});
+	
+	`
+
+	if _, e := vm.RunScript(s, ""); e != nil {
+		t.Fatal(e)
+	}
+
 }

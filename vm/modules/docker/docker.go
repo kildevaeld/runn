@@ -116,6 +116,33 @@ func Define(vm *notto.Notto) error {
 	return nil
 }
 
+func Define2(vm *notto.Notto) error {
+
+	o, e := vm.Object("({})")
+	if e != nil {
+		return e
+	}
+	//err := vm.Set("__private_docker", privateDockerCall(vm))
+	o.Set("create", func(call otto.FunctionCall) otto.Value {
+		var (
+			e error
+			c *docker_p
+			v otto.Value
+		)
+		if c, e = createDocker(vm); e != nil {
+			vm.Throw("DockerError", e)
+		}
+		if v, e = vm.ToValue(c); e != nil {
+			vm.Throw("DockerError", e)
+		}
+		return v
+	})
+
+	vm.AddModule("docker", notto.CreateLoaderFromValue(o.Value()))
+
+	return nil
+}
+
 func privateDocker(vm *notto.Notto, str string, call otto.Value) {
 	SimpleTask(vm, call, func() (interface{}, error) {
 

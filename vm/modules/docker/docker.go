@@ -116,7 +116,7 @@ func Define(vm *notto.Notto) error {
 	return nil
 }
 
-func Define2(vm *notto.Notto) error {
+func Define2(vm *notto.Notto, options *DockerOptions) error {
 
 	o, e := vm.Object("({})")
 	if e != nil {
@@ -129,7 +129,12 @@ func Define2(vm *notto.Notto) error {
 			c *docker_p
 			v otto.Value
 		)
-		if c, e = createDocker(vm); e != nil {
+
+		if options == nil {
+			options = &DockerOptions{Env: true}
+		}
+
+		if c, e = createDocker(vm, *options); e != nil {
 			vm.Throw("DockerError", e)
 		}
 		if v, e = vm.ToValue(c); e != nil {

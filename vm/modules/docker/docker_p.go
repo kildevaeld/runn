@@ -17,6 +17,18 @@ func mustValue(value otto.Value, err error) otto.Value {
 	return value
 }
 
+func boolOr(o *otto.Object, prop string, d bool) bool {
+	v, e := o.Get(prop)
+	if e != nil {
+		return d
+	}
+	if b, e := v.ToBoolean(); e != nil {
+		return d
+	} else {
+		return b
+	}
+}
+
 type docker_p_task struct {
 	id       int64
 	err      error
@@ -165,23 +177,186 @@ func (self *docker_p) HasImage(call otto.FunctionCall) otto.Value {
 	return otto.UndefinedValue()
 }
 
-func (self *docker_p) HasContainer() {
+func (self *docker_p) HasContainer(call otto.FunctionCall) otto.Value {
 
+	task := self.getTask("has_container", call.Argument(1))
+
+	go func() {
+		defer self.vm.Runloop().Ready(task)
+		if task.err = self.check_args(call); task.err != nil {
+			return
+		}
+
+		name := mustValue(call.Argument(0).Object().Get("name")).String()
+		containers, err := self.client.ListContainers(dockerclient.ListContainersOptions{})
+		if err != nil {
+			task.err = err
+			return
+		}
+
+		for _, i := range containers {
+			if name == i.ID {
+				task.result = true
+				return
+			}
+			for _, t := range i.Names {
+				if t[1:] == name {
+					task.result = true
+					return
+				}
+			}
+		}
+
+		task.result = false
+
+	}()
+
+	return otto.UndefinedValue()
 }
 
-func (self *docker_p) RemoveContainer() {
+func (self *docker_p) RemoveContainer(call otto.FunctionCall) otto.Value {
+	task := self.getTask("remove_container", call.Argument(1))
 
+	go func() {
+		defer self.vm.Runloop().Ready(task)
+		if task.err = self.check_args(call); task.err != nil {
+			return
+		}
+		o := call.Argument(0).Object()
+		name := mustValue(o.Get("name")).String()
+		force := boolOr(o, "force", false)
+		task.err = self.client.RemoveContainer(dockerclient.RemoveContainerOptions{
+			ID:    name,
+			Force: force,
+		})
+
+	}()
+
+	return otto.UndefinedValue()
 }
 
-func (self *docker_p) RemoveImage() {
+func (self *docker_p) RemoveImage(call otto.FunctionCall) otto.Value {
+	task := self.getTask("remove_image", call.Argument(1))
 
+	go func() {
+		defer self.vm.Runloop().Ready(task)
+		if task.err = self.check_args(call); task.err != nil {
+			return
+		}
+		o := call.Argument(0).Object()
+		name := mustValue(o.Get("name")).String()
+		force := boolOr(o, "force", false)
+		prune := boolOr(o, "prune", true)
+		task.err = self.client.RemoveImageExtended(name, dockerclient.RemoveImageOptions{
+			Force:   force,
+			NoPrune: !prune,
+		})
+
+	}()
+
+	return otto.UndefinedValue()
 }
 
-func createDocker(vm *notto.Notto) (*docker_p, error) {
-	c, e := dockerclient.NewClientFromEnv()
+func (self *docker_p) IsRunning(call otto.FunctionCall) otto.Value {
+	task := self.getTask("remove_image", call.Argument(1))
+
+	go func() {
+		defer self.vm.Runloop().Ready(task)
+		if task.err = self.check_args(call); task.err != nil {
+			return
+		}
+		o := call.Argument(0).Object()
+		name := mustValue(o.Get("name")).String()
+
+		i, err := self.client.InspectContainer(name)
+
+		if err != nil {
+			task.result = false
+		} else {
+			task.result = i.State.Running
+		}
+
+	}()
+
+	return otto.UndefinedValue()
+}
+
+func (self *docker_p) ListContainers(call otto.FunctionCall) otto.Value {
+	task := self.getTask("list_containers", call.Argument(1))
+
+	go func() {
+		defer self.vm.Runloop().Ready(task)
+		if task.err = self.check_args(call); task.err != nil {
+			return
+		}
+
+		containers, err := self.client.ListContainers(dockerclient.ListContainersOptions{})
+		if err != nil {
+			task.err = err
+			return
+		}
+
+		task.result = containers
+
+	}()
+
+	return otto.UndefinedValue()
+}
+
+func (self *docker_p) ListImages(call otto.FunctionCall) otto.Value {
+	task := self.getTask("list_images", call.Argument(1))
+
+	go func() {
+		defer self.vm.Runloop().Ready(task)
+		if task.err = self.check_args(call); task.err != nil {
+			return
+		}
+
+		images, err := self.client.ListImages(dockerclient.ListImagesOptions{})
+		if err != nil {
+			task.err = err
+			return
+		}
+
+		task.result = images
+
+	}()
+
+	return otto.UndefinedValue()
+}
+
+type DockerOptions struct {
+	Endpoint string
+	Cert     string
+	Key      string
+	Ca       string
+	Env      bool
+}
+
+func createDocker(vm *notto.Notto, o DockerOptions) (*docker_p, error) {
+	var (
+		c *dockerclient.Client
+		e error
+	)
+
+	if o.Env {
+		c, e = dockerclient.NewClientFromEnv()
+	} else {
+		if o.Cert == "" {
+			c, e = dockerclient.NewClient(o.Endpoint)
+		} else {
+			c, e = dockerclient.NewTLSClient(o.Endpoint, o.Cert, o.Key, o.Ca)
+		}
+	}
+
 	if e != nil {
 		return nil, e
 	}
+
+	if c == nil {
+		return nil, errors.New("no client")
+	}
+
 	return &docker_p{
 		vm:     vm,
 		client: c,

@@ -70,7 +70,7 @@ func TestDocker(t *testing.T) {
 	vm := notto.New()
 
 	result := modules.Define(vm)
-	result = Define2(vm)
+	result = Define2(vm, nil)
 	if result != nil {
 		t.Fatal(result)
 	}
@@ -85,6 +85,18 @@ func TestDocker(t *testing.T) {
 			});
 		});
 	
+		docker.HasContainer({name:'nginx'}, function (err, ok) {
+			console.log(err, ok)
+		});
+
+		docker.RemoveContainer({name: 'nginx', force:true}, function (err) {
+			console.log(err)
+		});
+
+		docker.ListContainers({}, function (err, list) {
+			console.log(JSON.stringify(list))
+		});
+
 	`
 
 	if _, e := vm.RunScript(s, ""); e != nil {
